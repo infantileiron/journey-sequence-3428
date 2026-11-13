@@ -32,6 +32,8 @@ class ReviewInput(StrictModel):
 class DecisionInput(StrictModel):
  status:Literal['approved','rejected']
  comment:str=Field(min_length=5,max_length=2000)
+class WithdrawInput(StrictModel):
+ reason:str=Field(min_length=5,max_length=2000)
 class ReportInput(StrictModel):
  run_id:str
  review_id:str

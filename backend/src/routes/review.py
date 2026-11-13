@@ -7,6 +7,8 @@ router=APIRouter(prefix="/reviews",tags=["reviews"])
 def list_items(user=Depends(current)): return controller.list_items()
 @router.post("",status_code=201)
 def create(data:ReviewInput,user=Depends(editor)): return controller.create(data,user)
-from src.schemas.entities import DecisionInput
+from src.schemas.entities import DecisionInput,WithdrawInput
 @router.patch("/{id}")
 def decide(id:str,data:DecisionInput,user=Depends(admin)): return controller.decide(id,data,user)
+@router.post("/{id}/withdraw",status_code=200)
+def withdraw(id:str,data:WithdrawInput,user=Depends(admin)): return controller.withdraw(id,data,user)

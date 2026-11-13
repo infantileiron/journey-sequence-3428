@@ -12,6 +12,21 @@ def create(data,user):
     return repo.put("reviews",item)
 def decide(id,data,user):
     item=repo.get("reviews",id)
-    if item["status"]!=ReviewStatus.PENDING.value: raise HTTPException(409,"该复核已处理")
-    item.update(status=data.status,comment=data.comment,reviewer=user["email"])
-    return repo.put("reviews",item)
+    # 与同运行的撤回/报告生成互斥，保证决定基于最新复核状态
+    with repo.run_lock(item["run_id"]):
+        item=repo.get("reviews",id)
+        if item["status"]!=ReviewStatus.PENDING.value: raise HTTPException(409,"该复核已处理")
+        item.update(status=data.status,comment=data.comment,reviewer=user["email"])
+        return repo.put("reviews",item)
+def withdraw(id,data,user):
+    item=repo.get("reviews",id)
+    with repo.run_lock(item["run_id"]):
+        item=repo.get("reviews",id)
+        if item["status"]!=ReviewStatus.APPROVED.value: raise HTTPException(409,"只有已批准的复核可撤回")
+        item.update(
+            status=ReviewStatus.WITHDRAWN.value,
+            withdraw_reason=data.reason,
+            withdraw_reviewer=user["email"],
+            withdrawn_at=now(),
+        )
+        return repo.put("reviews",item)

@@ -1,5 +1,7 @@
 import json
+from contextlib import contextmanager
 from dataclasses import asdict
+from hashlib import md5
 from urllib.parse import urlsplit,unquote
 import pymysql
 from fastapi import HTTPException
@@ -40,3 +42,17 @@ def put(table,item,insert_only=False):
    else:c.execute(f'INSERT INTO {table}(id,payload) VALUES(%s,%s) ON DUPLICATE KEY UPDATE payload=VALUES(payload)',(item['id'],payload))
   conn.commit();return item
  finally:conn.close()
+@contextmanager
+def run_lock(run_id,timeout=10):
+ # 同一运行上的批准/撤回/报告生成/下载校验串行化，避免撤回与生成并发时漏出可下载的旧报告
+ name='jr-run-'+md5(run_id.encode()).hexdigest()
+ conn=connect()
+ try:
+  with conn.cursor() as c:
+   c.execute('SELECT GET_LOCK(%s,%s)',(name,timeout))
+   if c.fetchone()[0]!=1:raise HTTPException(503,'该运行的复核操作繁忙，请稍后重试')
+  yield
+ finally:
+  try:
+   with conn.cursor() as c:c.execute('SELECT RELEASE_LOCK(%s)',(name,))
+  finally:conn.close()

@@ -39,6 +39,9 @@ class PathReview:
  status:str='pending'
  reviewer:str=''
  created_at:str=''
+ withdraw_reason:str=''
+ withdraw_reviewer:str=''
+ withdrawn_at:str=''
 @dataclass
 class Report:
  id:str
